@@ -210,5 +210,7 @@ console.log(collection.items); // output: [1, 2, 3]
 - [ECMA262 规范-14.7.5.10 for-in 迭代器对象](https://tc39.es/ecma262/#sec-for-in-iterator-objects)
 - [ECMA262 规范-14.7.5.9 EnumerateObjectProperties ( O ) 可列举的对象属性](https://tc39.es/ecma262/#sec-enumerate-object-properties)
 - [MDN-迭代协议](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Iteration_protocols)
+- [MDN-迭代器和生成器](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Iterators_and_Generators)
+- [MDN-yield](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/yield)
 
 
