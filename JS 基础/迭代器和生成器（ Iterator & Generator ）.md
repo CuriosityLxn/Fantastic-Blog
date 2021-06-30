@@ -8,7 +8,7 @@
   - value：和 done 一起存在时，是该节点的值，可以是任何类型，包括假值。
   - done：bool 类型，如果序列在当前节点终止，为 true，否则为 false。  
 
-![image](https://user-images.githubusercontent.com/31687804/123583358-0e8c0380-d812-11eb-9742-605802af80a3.png)
+![image](https://user-images.githubusercontent.com/31687804/123943978-3d9ba400-d9cf-11eb-8fa1-f5c3b6ad2474.png)
 
 #### 可迭代协议
 
@@ -20,10 +20,9 @@
 必须有 **next** 属性，next() 方法是一个函数，返回一个**迭代器结果对象**。  
 next() 方法可以接受传参，参数的解析和有效性取决于迭代器如何处理及是否使用。
 
-![image](https://user-images.githubusercontent.com/31687804/123603514-8830eb00-d82c-11eb-9a6e-322fd3696419.png)
+![image](https://user-images.githubusercontent.com/31687804/123948757-5d819680-d9d4-11eb-90b3-65f6fbe628e0.png)
 
 所有的迭代器对象除了可以通过 next() 获取节点的值，也可以通过 **return()** 方法在迭代器末尾之前提前返回，或者通过 **throw()** 方法抛出异常。这两个方法也可以接受传参。
-
 
 #### 异步可迭代协议及异步迭代器协议
 
@@ -41,7 +40,7 @@ next() 方法可以接受传参，参数的解析和有效性取决于迭代器�
 > ⚠️ 迭代器只是定义出一个序列形式的接口形式，这个序列可以理解为**单链表**，**和它要遍历的数据结构（可迭代对象）一般是分开的**。 
 > 迭代器和迭代语句（for-of、for-in）通过对可迭代对象的 Symbol.iterator 属性实现迭代。
 
-![image](https://user-images.githubusercontent.com/31687804/123584268-a4745e00-d813-11eb-849c-f57572dc8aa1.png)
+![image](https://user-images.githubusercontent.com/31687804/123948487-07145800-d9d4-11eb-977e-b834858ad026.png)
 
 ## 可迭代对象（Iterable Object）
 
@@ -103,28 +102,72 @@ console.log(iterator.next());
 ![image](https://user-images.githubusercontent.com/31687804/123607797-c92afe80-d830-11eb-9daa-a2a6fc3c5248.png)
 
 
-## 迭代语句：for-of、for-in、for-await-of、while、do-while
+## 用于操作可迭代对象的语句
+
+- 迭代语句：for-of、for-in、for-await-of、while、do-while
+- yield 语句
+- 展开运算符及解构赋值
+这些语句仅可用于可迭代对象，用于非可迭代对象时会抛出异常。
+
+##### for-of 循环相较于一般 for 循环的优势
 使用一般 for 循环遍历可迭代对象时，通常需要一个索引来记录当前遍历到的位置，索引出错则会导致遍历结果出错。  
 用 **for-of 循环 + 迭代器** 遍历可以杜绝这个问题，因为索引被内置了，外界无法访问、改动。  
 
 ##### 循环语句执行原理：
-**for-of 循环** 通过 Symbol.iterator 方法返回迭代器，每次执行都会调用一次 next() 方法，将返回的 value 赋值给一个变量。当迭代器返回的 done 为 true 时，终止循环，不再赋值。
-
-## 展开运算符
-仅能用于可迭代对象。
-
+通过 Symbol.iterator 方法返回迭代器，每次执行都会调用一次 next() 方法，将返回的 value 赋值给一个变量。当迭代器返回的 done 为 true 时，终止循环，不再赋值。
 
 ## 生成器（Generator）
 
-> Generator，又叫生成器对象，既是迭代器，也是可迭代对象。  --[MDN](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Iteration_protocols#%E7%94%9F%E6%88%90%E5%99%A8%E5%AF%B9%E8%B1%A1%E5%88%B0%E5%BA%95%E6%98%AF%E4%B8%80%E4%B8%AA%E8%BF%AD%E4%BB%A3%E5%99%A8%EF%BC%8C%E8%BF%98%E6%98%AF%E4%B8%80%E4%B8%AA%E5%8F%AF%E8%BF%AD%E4%BB%A3%E5%AF%B9%E8%B1%A1%EF%BC%9F)
-- 作用：用于自定义的迭代器，需要显式地维护其内部状态，使用 `function*` 语法编写。
-- 生成了什么：一个包含自有迭代算法的函数，同时它可以自动维护自己的状态。
+规范中对于生成器（Generator）有两种描述：Generator 函数对象（GeneratorFunction Objects）和 Generator 对象（Generator Objects）。当提到生成器的时候，要先明确指的是 Generator 函数还是 Generator 对象。
+
+> 《ES 2022 27.3 GeneratorFunction Objects》中对 Generator 函数对象的描述：  
+> GeneratorFunction objects are functions that are usually created by evaluating GeneratorDeclarations, GeneratorExpressions, and GeneratorMethods. They may also be created by calling the %GeneratorFunction% intrinsic.  
+> 意译：通常情况下，Generator函数 对象是在执行`生成器声明、生成器表达式和生成器方法`时，被创建出的函数，也可以被生成器函数自身创建出。
+
+> 《ES 2022 27.5 Generator Objects》中对 Generator 对象的描述：  
+> A Generator object is an instance of a generator function and conforms to both the Iterator and Iterable interfaces.  
+>
+> Generator instances directly inherit properties from the object that is the initial value of the "prototype" property of the Generator function that created the instance. Generator instances indirectly inherit properties from the Generator Prototype intrinsic, %GeneratorFunction.prototype.prototype%.     
+> 意译：Generator 对象是 Generator 函数的实例，且同时遵守迭代器协议和可迭代协议。    
+> 生成器实例直接继承一个对象中的属性，这个对象是创建该实例的生成器函数的 **"prototype"** 属性的初始值。Generator 实例间接继承了 Generator 原型的固有属性，即 `GeneratorFunction.prototype.prototype`。
+
+概括一下两者关系，**Generator 函数返回一个 Generator 对象，Generator 对象既是迭代器又是可迭代对象**。    
+
+Generator 方法语法（ES 5，不常用）：   
+`* class 元素名(唯一形参) { 生成器体 }`    
+  
+
+#### Generator 函数   
+
+语法：    
+
+生成器函数声明：    
+- `function * 绑定标识符(形参) { 生成器体 }`       
+- `function * (形参) { 生成器体 }`
+
+生成器函数表达式：   
+`function * 绑定标识符 opt (形参) { 生成器体 }`
+生成器体：即`函数体`   
+
+优点：自定义迭代器需要显式地手写 next() 函数体，并显式地写出 next() 返回的 {done, value} 结构，Generator 函数允许定义一个包含自有迭代算法，同时它可以自动维护自己的状态。
 
 调用过程：
 
 1. 最初调用，不执行任何代码，返回 Generator 迭代器；
 2. 调用生成器的 next 方法时，执行 Generator 函数，遇到下一个 yield 关键字之前的所有语句。
-3. 每次调用生成一个新的 Generator，但每个 Generator 只能迭代一次。
+3. 每次调用生成一个新的 Generator 迭代器，但每个 Generator 只能迭代一次。
+
+#### yield 语句
+
+语法：
+
+Yield 表达式：     
+- `yield`    
+- `yield 表达式`    
+- `yield * 表达式` 
+
+Generator 函数的执行在遇到 `yield` 语句时会暂停执行，`yield` 返回一个迭代器结果对象，迭代器结果对象 **value** 属性的值是 `yield` 后面表达式的求值结果，**done** 属性标明 Generator 函数是否执行到末尾（若有 return，则 return 处为末尾）。      
+Generator 迭代器再次调用 next() 方法时，恢复 Generator 函数的执行。     
 
 ## 创建可迭代对象
 
@@ -146,9 +189,26 @@ collection.items.push(3);
 console.log(collection.items); // output: [1, 2, 3]
 ```
 
+
+## 总结
+
+- 满足 `有 Symbol.iterator 属性且Symbol.iterator 属性是返回迭代器对象的无参数函数` 的对象就是可迭代对象。
+- 从含义上讲，Generator 函数是生成迭代器的函数。
+- 就像 Array 是 Object 一样，Generator 对象是 迭代器对象。
+- 自定义迭代器对象需要显示维护其状态，Generator 迭代器自维护其状态。
+- 简记：
+  -  可迭代对象：Object + [Symbol.iterator]: () {return 迭代器对象;}
+  -  迭代器对象：Object + next() {return 迭代器结果对象;}
+  -  Generator 对象：Object + [Symbol.iterator]: () {return 迭代器对象;} + next() {return 迭代器结果对象;}
+
+
 #### 参考资料
-- 《深入理解 ES 6》
+- 《深入理解 ES 6-迭代器和生成器》
 - [ECMA262 规范-27.1 常用迭代协议](https://tc39.es/ecma262/#sec-common-iteration-interfaces)
 - [ECMA262 规范-27.3 生成器函数对象](https://tc39.es/ecma262/#sec-generatorfunction-objects)
 - [ECMA262 规范-27.5 生成器对象](https://tc39.es/ecma262/#sec-generator-objects)
+- [ECMA262 规范-14.7.5.10 for-in 迭代器对象](https://tc39.es/ecma262/#sec-for-in-iterator-objects)
+- [ECMA262 规范-14.7.5.9 EnumerateObjectProperties ( O ) 可列举的对象属性](https://tc39.es/ecma262/#sec-enumerate-object-properties)
 - [MDN-迭代协议](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Iteration_protocols)
+
+
