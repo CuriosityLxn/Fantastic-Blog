@@ -203,6 +203,13 @@ collection.items.push(2);
 collection.items.push(3);
 
 console.log(collection.items); // output: [1, 2, 3]
+for (let item of collection) {
+  console.log(item)
+}
+// output: 
+// 1
+// 2
+// 3
 ```
 ## 迭代器进阶用法：数据交互、异步和任务执行器
 
