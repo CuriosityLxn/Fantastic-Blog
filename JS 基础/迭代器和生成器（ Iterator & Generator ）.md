@@ -41,15 +41,15 @@
 与上述同步协议类似，区别是异步可迭代协议返回的是**异步迭代器对象**，异步迭代器协议的 next、return、throw 方法返回的是一个符合**Promise 类型的迭代器结果对象 **。  
 - **next 方法**：返回的 promise 如果完成了，则 promise 将以符合迭代器结果协议的对象完成。 value 属性值是迭代器结果对象，且不能是 Promise 类型或 thenable 的。
 - **return 方法**：传参如果是一个被拒绝的 promise，则返回的是一个相同原因的 promise 拒绝；如果传参是完成的 promise，那么它的完成值会被作为返回的 Promise 迭代器结果对象的 value 属性的值。 
-- **throw 方法**：返回一个**被拒绝的 promise**，这个 **Promise** 的拒绝是传参的值。
+- **throw 方法**：返回一个 **被拒绝的 promise**，这个 **Promise** 的拒绝是传参的值。
 
 ## 迭代器（Iterator）
 
 - 用途：用于遍历JS表示“集合”的数据结构，这些集合必须是可迭代对象，主要是 Array、Object、Map、Set。
-- 本质：是一个**指针对象**。   
+- 本质：是一个**特殊对象**。   
 
-迭代器的每个节点由**一个迭代器结果对象**和**一个指针**组成，指针指向下一个节点，调用迭代器对象的 next() 方法，显示迭代到下一个节点，消耗它并返回它的值。    
-> ⚠️ 迭代器只是定义出一个序列形式的接口形式，这个序列可以理解为**单链表**，**和它要遍历的数据结构（可迭代对象）一般是分开的**。 
+调用迭代器对象的 next() 方法，显示迭代到下一个节点（移动内置指针到下一个节点），返回它的值。    
+> ⚠️ 迭代器只是定义出一个接口形式，**和它要遍历的数据结构（可迭代对象）一般是分开的**。 被迭代器逐个访问的序列的数据结构可以抽象理解为**单链表**
 > 迭代器和迭代语句（for-of、for-in）通过对可迭代对象的 Symbol.iterator 属性实现迭代。
 
 ![image](https://user-images.githubusercontent.com/31687804/123948487-07145800-d9d4-11eb-977e-b834858ad026.png)
@@ -204,7 +204,7 @@ collection.items.push(3);
 
 console.log(collection.items); // output: [1, 2, 3]
 ```
-## 迭代器进阶用法：、异步
+## 迭代器进阶用法：数据交互、异步和任务执行器
 
 ### 给迭代器传值
 
@@ -343,7 +343,132 @@ iterator.next(); // {value: "a", done: false}
 
 ### 实现异步任务执行
 
+从上文已知，
+- Generator 函数中通过 yield 语句暂停执行，通过自身返回的迭代器的 next() 方法调用恢复执行；
+- 给 next() 传参可以控制 Generator 函数体内外数据交互。
 
+js 异步本质上是通过回调函数实现的，Generator 函数执行起来也是不断将正在执行的执行栈转移、恢复执行权给其他表达式，和回调函数的执行机制类似。     
+所以当 Generator 函数生成的迭代器 value 是一个函数时，可以通过给这个函数传回调函数的方式实现异步。
+
+```javascript
+// 定义异步函数
+function asyncTask(callback) {
+  setTimeout(() => callback('This is callback'), 0);
+}
+
+// 在生成器函数中执行异步任务
+function * executeAsyncTask() {
+  let text = yield asyncTask; // 执行权移交给异步函数
+  console.log(text);
+}
+
+let gen = executeAsyncTask(); // gen 是生成器函数返回的迭代器
+let resObj = gen.next(); // gen 迭代器返回的迭代器结果对象，{value: asyncTask, done: false}
+
+// 1. asyncTask 接收 callback: sth => gen.next(sth)
+// 2. callback 接收到 param: 'This is callback'，再将 param 传给 gen.next(param)
+// 3. gen.next(param) 恢复执行生成器函数 executeAsyncTask 执行，且用 param 覆盖第一个 yield 返回值
+// 4. 执行 let text = param;
+// 5. 执行 console.log(text); 输出 This is callback
+// 6. 生成器函数 executeAsyncTask 执行完毕
+resObj.value(param => gen.next(param)); // output：This is callback
+```
+
+这种写法看上去条理比较清晰，但需要手动显示调用 next() 方法执行每一阶段代码。根据 done 属性值可以判断出生成器函数是否执行完毕，可以写一个自动任务执行器来让 Generator 函数自动执行。
+
+### 任务执行器
+
+#### 简单任务执行器
+
+value 是简单的值时：
+
+```javascript
+// 自动任务执行器 autoExecute 函数接受一个 Generator 函数
+function autoExecute(task) {
+  let gen = task();
+  let result = gen.next();
+
+  const step = () => {
+    // 是否可以继续迭代到下一个迭代器
+    if (result.done) {
+      return;
+    }
+    console.log(result.value);
+    result = gen.next();
+    step();
+  };
+
+  step(); // 开始迭代
+}
+
+// 定义一个名为 simpleTask 的 Generator 函数
+function* simpleTask() {
+  yield 1;
+  yield 2;
+  yield 3;
+  return;
+}
+
+// 检验任务执行器 autoExecute 是否可以自动执行 Generator 函数 simpleTask
+autoExecute(simpleTask);
+// output:
+// 1
+// 2
+// 3
+```
+
+#### 异步任务执行器
+
+value 是函数时，执行器先要执行这个函数，再将结果传入 next() 方法，下一段代码的执行才能使用到函数执行的结果。
+```javascript
+function autoExecute(task) {
+  let gen = task();
+  let result = gen.next();
+
+  const step = () => {
+    if (result.done) {
+      return;
+    }
+    if (typeof result.value === 'function') {
+      // 当 result.value 是函数时，接收回调函数 callback，执行过程中自动处理数据传递和错误处理
+      const callback = (data, err) => {
+        if (err) {
+          result = gen.throw(err);
+          return;
+        }
+
+        result = gen.next(data);
+        step();
+      };
+      result.value(callback);
+    } else { // 兼容同步操作
+      console.log(result.value);
+      result = gen.next(result.value);
+      step();
+    }
+  };
+
+  step();
+}
+
+function asyncTask(callback) {
+  setTimeout(() => callback('This is callback 1'), 0);
+}
+
+function* runTask() {
+  yield * 'hua';
+  let text = yield asyncTask;
+  console.log(text); // 我们期望这里正常输出Hello Leo
+}
+
+autoExecute(runTask);
+// output:
+// h
+// u
+// a
+// undefined
+// This is callback 1
+```
 
 ## 总结
 
@@ -355,7 +480,7 @@ iterator.next(); // {value: "a", done: false}
   -  可迭代对象：Object + [Symbol.iterator]: () {return 迭代器对象;}
   -  迭代器对象：Object + next() {return 迭代器结果对象;}
   -  Generator 对象：Object + [Symbol.iterator]: () {return 迭代器对象;} + next() {return 迭代器结果对象;}
-
+- 给 next()、return()、throw()传参会改变迭代器内部状态，传给它们的值会被 yield 语句接收。传给第一个被调用的 next() 的值会被忽略。
 
 #### 参考资料
 - [ECMA262 规范-27.1 常用迭代协议](https://tc39.es/ecma262/#sec-common-iteration-interfaces)
