@@ -172,6 +172,46 @@ Generator 方法语法（ES 5，不常用）：
 2. 调用生成器的 next 方法时，执行 Generator 函数，遇到下一个 yield 关键字之前的所有语句。
 3. 每次调用生成一个新的 Generator 迭代器，但每个 Generator 只能迭代一次。
 
+#### Generator 函数的继承问题和 this 指向
+
+Generator 函数总是返回迭代器对象而不是 this 对象，返回的迭代器对象会继承 Generator 函数的 prototype。因此 Generator 函数不能当作一般的构造函数使用，和 new 语句一起使用会报错。即便给 Generator 函数的 this 对象挂载属性，它返回的迭代器对象也拿不到这个属性。
+
+```javascript
+function* g() {
+  this.a = 11;
+}
+
+let obj = g();
+obj.next();
+obj.a  // undefined
+new g();  // TypeError: F is not a constructor
+```
+阮一峰大佬给了一种思路，使 Generator 函数既可以被 new 语句执行，又可以使实例访问到 this 中挂载的值。
+```javascript
+function* gen() {
+  this.a = 1;
+  yield this.b = 2;
+  yield this.c = 3;
+}
+
+function F() {
+  return gen.call(gen.prototype);
+}
+
+var f = new F();
+
+f.next();  // Object {value: 2, done: false}
+console.log(gen.prototype);  // Generator {a: 1, b: 2}
+f.next();  // Object {value: 3, done: false}
+console.log(gen.prototype);  // Generator {a: 1, b: 2, c: 3}
+f.next();  // Object {value: undefined, done: true}
+
+f.a // 1
+f.b // 2
+f.c // 3
+```
+
+
 #### yield 语句
 
 语法：
@@ -480,7 +520,7 @@ autoExecute(runTask);
 ## 总结
 
 - 满足 `有 Symbol.iterator 属性且Symbol.iterator 属性是返回迭代器对象的无参数函数` 的对象就是可迭代对象。
-- 从含义上讲，Generator 函数是生成迭代器的函数。
+- 从含义上讲，Generator 函数是生成迭代器的函数，且不能当作构造函数使用。
 - 就像 Array 是 Object 一样，Generator 对象是 迭代器对象。
 - 自定义迭代器对象需要显示维护其状态，Generator 迭代器自维护其状态。
 - 简记：
