@@ -517,6 +517,62 @@ autoExecute(runTask);
 // This is callback 1
 ```
 
+## async/await
+
+于 ES2017 标准引入，ES 规范指定 async 函数是返回 AsyncFunction 对象的异步函数，await 关键字返回值是一个 Promise 对象。阮一峰大佬在[《ECMAScript 6 入门》](https://es6.ruanyifeng.com/#docs/async)中提到：async 函数本质是一个**自执行**的 Generate 函数，这种用法是 Generator 函数 + Promise 的语法糖。Generator 函数的执行必须靠执行器，async 函数
+- 自带了执行器。
+- 返回值必须是 Promise 对象，Promise 对象比迭代器更方便操作。
+- yield 语句后面可以省略操作内容，await 不可以。await 的操作内容可以是 Promise 对象和原始类型的值（数值、字符串和布尔值，但这时会自动转成立即 resolved 的 Promise 对象）。
+
+所以可以用 Generator 函数来模拟 async 函数的执行，await 相当于 yield。    
+
+伪代码
+```javascript
+function _async(genFunction) {
+  return function(...args) {
+    return new Promise((resolve, reject) => {
+      返回 Promise 的自动执行器
+    })
+  }
+}
+```
+
+简单实现
+```javascript
+function _async(generatorFunction) {
+  // _async 是一个返回 Promise 对象的函数
+  return function() {
+    const gen = generatorFunction.apply(this, arguments); // 迭代器
+    return new Promise((resolve, reject) => {
+      // Promise 对象的 executor 是一个执行器
+      function step(key, arg) {
+        let generatorRes;
+        try {
+          // 相当于 generatorRes = gen.next(arg)
+          // 或    generatorRes = gen.throw(arg)
+          generatorRes = gen[key](arg);
+        } catch (err) {
+          return reject(err);
+        }
+
+        const { value, done } = generatorRes;
+        return done
+          // 迭代结束，返回一个完成状态的 promise，迭代器结果的值作为 promise 的完成值
+          ? resolve(value)
+          // 迭代未结束，则将当前迭代器结果的值传给下一个 yield
+          : Promise.resolve(value).then(
+              val => step('next', val),
+              err => step('throw', err)
+            );
+      }
+
+      // 开始迭代
+      step('next');
+    });
+  };
+}
+```
+
 ## 总结
 
 - 满足 `有 Symbol.iterator 属性且Symbol.iterator 属性是返回迭代器对象的无参数函数` 的对象就是可迭代对象。
