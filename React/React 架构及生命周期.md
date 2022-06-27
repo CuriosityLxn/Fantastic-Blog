@@ -34,7 +34,7 @@ React 就是 fn，根据数据状态来渲染 UI。
 
 ## state 更新 ==> 视图更新
 
-// 图片上传失败，等翻墙OK了再传。
+![image](https://s1.ax1x.com/2022/06/27/jEqbPU.png)
 
 ## Virtual Dom Tree 的创建与更新
 
