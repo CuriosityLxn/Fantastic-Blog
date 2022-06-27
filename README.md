@@ -1,5 +1,7 @@
 # Fantastic-Blog
 
-每日一题 &amp; 知识点
+code 存放各 Topic 知识点。
 
-内容在 issues 里，不要迷路。
+issues 存放一些题目的解答。
+
+
